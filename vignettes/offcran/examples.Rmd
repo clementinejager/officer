@@ -1,0 +1,118 @@
+---
+title: "Examples"
+author: "David Gohel"
+date: "03/09/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Comment faire ...
+
+### ... pour ajouter un graphique dans une présentation PowerPoint?
+
+
+#### Ajouter un graphique
+
+Dans un premier temps, nous allons créer un graphique à l'aide de **ggplot2**, que nous nommerons *g*.
+
+Dans un second temps, nous pouvons créer un PowerPoint en commençant par la fonction `read_pptx`, puis en ajoutant
+une slide grâce à `add_slide`. La slide ajoutée contiendra un titre et un contenu (placeholder). Pour ajouter le titre 
+on utilise `ph_with` en précisant pour la paramètre `location` : `ph_location_type(type = "title"))`.
+
+Nous pouvons enfin ajouter le graphique dans ce PowerPoint à l'aide de la fonction `ph_with`, en indiquant le nom
+du graphique *g* pour le paramètre `value` et en indiquant `ph_location_type(type = "body")` pour le paramètre 
+`location`. 
+```{r graphics}
+library(ggplot2)
+library(officer)
+library(magrittr)
+
+g <- ggplot(mpg, aes( x = displ, y = cty, color = hwy) ) +
+  geom_point()
+
+my_pres <-read_pptx()  %>% 
+  add_slide(layout = "Title and Content", master = "Office Theme") %>%
+  ph_with(value = "Graph", location = ph_location_type(type = "title")) %>%
+  ph_with(value = g, location = ph_location_type(type = "body"))
+```
+
+On utilise ensuite la fonction `print` pour la création du PowerPoint, et 
+grâce au paramètre `target` nous pouvons choisir le chemin dans lequel le 
+PowerPoint sera enregistré. 
+```{r eval = FALSE}
+print(my_pres, target = "graph.pptx")
+
+```
+
+
+
+#### Ajouter un graphique modifiable directement dans PowerPoint
+
+Le graphique ajouté précèdemment n'est pas modifiable dans le PowerPoint, cependant en utilisant 
+le package `rvg` il est possible de le faire. 
+C'est la fonction `dml` qui va nous permettre de rendre le graphique modifiable, en ajoutant 
+`dml(ggobj = g, bg = "transparent")` pour le paramètre `value`.
+```{r graphics with rvg, warning=FALSE}
+library(rvg)
+
+my_pres <- read_pptx()  %>% 
+  add_slide(layout = "Title and Content", master = "Office Theme") %>%
+  ph_with(value = "Graph", location = ph_location_type(type = "title")) %>%
+  ph_with(dml(ggobj = g, bg = "transparent"), location = ph_location_type(type = "body"))
+```
+
+```{r eval = FALSE}
+print(my_pres, target = "graph.pptx")
+```
+
+### ... pour ajouter une `block_list` dans une présentation PowerPoint?
+
+La fonction `block_list` permet d'associer plusieurs paragraphes ou tables dans le même objet, ce qui sera utile pour
+insérer des paragraphes mis en forme. 
+L'exemple ci-dessous illustre l'utilisation de cette fonction. `fpar` et `ftext` permettent de créer respectivement 
+une zone de paragraphe et une zone de texte.
+```{r}
+bl <- block_list(
+  fpar(ftext("hello world", shortcuts$fp_bold(color = "pink"))),
+  fpar(
+    ftext("hello", shortcuts$fp_bold()),
+    ftext("hello", shortcuts$fp_italic(color="red"))
+  ))
+```
+
+Il est ensuite possible d'intégrer `bl` dans un PowerPoint toujours à l'aide de
+la fonction `ph_with`.  
+```{r}
+my_pres <- read_pptx() %>%
+  add_slide(layout = "Title and Content", master = "Office Theme")%>%
+  ph_with(value = "title", location = ph_location_type(type = "title")) %>%
+  ph_with(value = "footer", location = ph_location_type(type = "ftr")) %>%
+  ph_with(bl, location = ph_location_type(type = "body"))
+```
+
+
+### ... pour ajouter une modifier la position d'un placeholder?
+
+Grâce à l'argument `location` de la fonction `ph_with` il est possible de choisir l'emplacement
+des objets dans le PowerPoint. 
+La fonction `ph_location` va permettre d'indiquer les arguments tels que `width`, `left`, `top`, 
+`rotation`, `bg` ... pour la largeur, la position par rapport à la gauche et par rapport au haut du PowerPoint mais
+également la rotation et la couleur du fond.
+
+
+```{r }
+my_pres <- read_pptx() %>%
+  add_slide(layout = "Title and Content", master = "Office Theme")%>%
+  ph_with(value = "title", location = ph_location_type(type = "title")) %>%
+  ph_with(value = "footer", location = ph_location_type(type = "ftr")) %>%
+  ph_with(bl, location = ph_location(width = 6, left = 2.5, top = 2.5, rotation = 30, bg = "gray"))
+
+```
+
+
+```{r eval= FALSE}
+print(my_pres, target = "blocklist.pptx")
+```
